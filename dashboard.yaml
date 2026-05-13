@@ -1,0 +1,183 @@
+# ==============================================================
+# HOT TUB CHEMISTRY MANAGER – dashboard.yaml (Lovelace)
+# ==============================================================
+# How to add this dashboard:
+# Settings → Dashboards → Add Dashboard
+# Open it → ⋮ → Edit → Raw configuration editor → paste this
+# ==============================================================
+
+title: Hot Tub Chemistry
+views:
+  - title: Overview
+    icon: mdi:hot-tub
+    path: hottub
+    type: masonry
+    badges: []
+    cards:
+
+      # ══════════════ COLUMN 1: STATUS & READINGS ══════════════
+
+      - type: markdown
+        content: >
+          ## {{ states('sensor.whirlpool_chemistry_status') }}
+
+          *Last updated: {{ now().strftime('%d.%m.%Y %H:%M') }}*
+
+      - type: glance
+        title: 📊 Current Readings
+        columns: 3
+        show_name: true
+        show_icon: true
+        show_state: true
+        entities:
+          - entity: sensor.wpsensor_ph
+            name: pH
+            icon: mdi:ph
+          - entity: sensor.wpsensor_orp
+            name: ORP (mV)
+            icon: mdi:lightning-bolt
+          - entity: sensor.whirlpool_free_chlorine_estimated
+            name: FC (estimated)
+            icon: mdi:water-percent
+          - entity: sensor.wpsensor_temperature
+            name: Temperature
+            icon: mdi:thermometer
+          - entity: sensor.wpsensor_tds
+            name: TDS
+            icon: mdi:water-opacity
+          - entity: sensor.wpsensor_salinity
+            name: EC/Salinity
+            icon: mdi:shaker-outline
+
+      - type: entities
+        title: 💊 Dosing Suggestions
+        show_header_toggle: false
+        entities:
+          - type: section
+            label: Recommended dose now
+          - entity: sensor.whirlpool_chlorine_suggestion
+            name: HTH Shock Chlorine (75%)
+            icon: mdi:flask-plus
+          - entity: sensor.whirlpool_ph_minus_suggestion
+            name: pH Minus BAYZID® liquid
+            icon: mdi:flask-minus
+          - type: section
+            label: Wait hint
+          - entity: sensor.whirlpool_wait_hint
+            name: After dose
+            icon: mdi:timer-outline
+
+      # ══════════════ COLUMN 2: DOSE ENTRY & LEARNING ══════════
+
+      - type: entities
+        title: ✏️ Log a Dose
+        show_header_toggle: false
+        entities:
+          - type: section
+            label: What did you just add?
+          - entity: input_number.whirlpool_chlorine_dose
+            name: Chlorine added (g)
+            icon: mdi:flask-plus
+          - entity: input_number.whirlpool_ph_minus_dose
+            name: pH Minus added (ml)
+            icon: mdi:flask-minus
+          - type: section
+            label: "Optional: manual FC reading (test strips)"
+          - entity: input_number.whirlpool_free_chlorine_manual
+            name: Free chlorine measured (mg/L)
+            icon: mdi:test-tube
+          - type: section
+            label: Confirm
+          - entity: input_boolean.whirlpool_dose_confirmed
+            name: ✅ Save dose & update learning factor
+            icon: mdi:content-save-check
+
+      - type: entities
+        title: 🧠 Adaptive Learning
+        show_header_toggle: false
+        entities:
+          - entity: input_boolean.whirlpool_learning_enabled
+            name: Learning enabled
+          - type: section
+            label: Current correction factors (1.0 = calibrated)
+          - entity: input_number.whirlpool_learning_factor_chlorine
+            name: Factor Chlorine
+            icon: mdi:tune
+          - entity: input_number.whirlpool_learning_factor_ph
+            name: Factor pH Minus
+            icon: mdi:tune
+
+      - type: markdown
+        content: |
+          💡 **Understanding learning factors:**
+
+          Factor < 1.0 → you add less than suggested (formula overestimates)
+
+          Factor > 1.0 → you add more than suggested (formula underestimates)
+
+          Range: 0.5 – 2.0 | Reset: set value to **1.0**
+
+      - type: markdown
+        content: |
+          ## 📋 Dose History
+
+          Every confirmed dose is saved as a **Persistent Notification**.
+
+          Find all entries under:
+          🔔 **Notifications** (bell icon in HA) → "💧 Hot Tub Dose Log"
+
+          Each entry contains: date, readings before dose, amount added, suggestion, learning factors.
+
+      # ══════════════ COLUMN 3: HISTORY GRAPHS & REFERENCE ════
+
+      - type: history-graph
+        title: 📈 pH History (24h)
+        hours_to_show: 24
+        entities:
+          - entity: sensor.wpsensor_ph
+            name: pH
+
+      - type: history-graph
+        title: 📈 ORP History (24h)
+        hours_to_show: 24
+        entities:
+          - entity: sensor.wpsensor_orp
+            name: ORP (mV)
+
+      - type: history-graph
+        title: 📈 Free Chlorine Estimate (24h)
+        hours_to_show: 24
+        entities:
+          - entity: sensor.whirlpool_free_chlorine_estimated
+            name: FC estimated (mg/L)
+
+      - type: history-graph
+        title: 🌡️ Temperature & TDS (24h)
+        hours_to_show: 24
+        entities:
+          - entity: sensor.wpsensor_temperature
+            name: Temperature
+          - entity: sensor.wpsensor_tds
+            name: TDS
+
+      - type: markdown
+        content: |
+          ## 📚 Quick Reference (1200L)
+
+          **HTH Shock 75% Chlorine**
+          - Raise FC by 1 mg/L = **2.4g**
+          - Shock chlorination (10 mg/L) = **24g**
+          - Pre-dissolve in bucket, then add
+
+          **BAYZID® pH Minus 14.9%**
+          - Lower pH by 0.1 = **~18ml**
+          - Max single dose: **150ml**
+          - Add with jets running
+
+          **⚠️ Important:** Fix pH *first*, then add chlorine!
+          At pH > 7.6, chlorine is only 10–30% effective!
+
+          **Wait times:**
+          - After chlorine: 15 min, then test
+          - After pH minus: 30–45 min, then test
+          - After shock: wait until ORP > 650 mV

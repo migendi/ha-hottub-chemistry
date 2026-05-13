@@ -1,0 +1,136 @@
+# ==============================================================
+# HOT TUB CHEMISTRY MANAGER – sensor_template.yaml
+# ==============================================================
+# Adjust the following to match your setup:
+#   - Sensor entity IDs (search/replace wpsensor_*)
+#   - Water volume (1200 liters)
+#   - Chemical products (HTH Shock 75%, BAYZID 14.9%)
+#   - Target values (ph_target, fc_target)
+# ==============================================================
+
+- sensor:
+
+    # ── Free Chlorine Estimate from ORP ────────────────────────────
+    # Linear approximation: FC ≈ (ORP - 600) / 75
+    # This is an estimate only – use test strips for accuracy.
+    # Manual FC entry (input_number.whirlpool_free_chlorine_manual)
+    # takes priority when set to a value > 0.
+    - name: "Whirlpool Free Chlorine Estimated"
+      unique_id: whirlpool_free_chlorine_estimated
+      unit_of_measurement: "mg/L"
+      icon: mdi:water-percent
+      state: >
+        {% set orp = states('sensor.wpsensor_orp') | float(0) %}
+        {% if orp > 100 %}
+          {{ [[(orp - 600) / 75, 0] | max, 15] | min | round(2) }}
+        {% else %}
+          0
+        {% endif %}
+      attributes:
+        note: "Linear ORP estimate – use test strips for accuracy"
+
+    # ── Chlorine Dosing Suggestion ──────────────────────────────────
+    # Product: HTH Shock 75% calcium hypochlorite
+    # Formula: 2.4g raises 1200L by 1 mg/L free chlorine
+    # Adjust g_per_mgl for your volume and product (see README)
+    - name: "Whirlpool Chlorine Suggestion"
+      unique_id: whirlpool_chlorine_suggestion
+      unit_of_measurement: "g"
+      icon: mdi:flask-plus
+      state: >
+        {% set orp = states('sensor.wpsensor_orp') | float(0) %}
+        {% set fc_estimated = states('sensor.whirlpool_free_chlorine_estimated') | float(0) %}
+        {% set fc_manual = states('input_number.whirlpool_free_chlorine_manual') | float(0) %}
+        {% set learning_factor = states('input_number.whirlpool_learning_factor_chlorine') | float(1.0) %}
+
+        {# Use manual reading if available, otherwise use ORP estimate #}
+        {% set fc = fc_manual if fc_manual > 0 else fc_estimated %}
+
+        {# Target free chlorine: 3.0 mg/L (hot tubs need more than pools) #}
+        {% set fc_target = 3.0 %}
+
+        {# HTH Shock 75%: 2.4g raises 1200L by 1 mg/L #}
+        {# Formula: volume_liters / 1000 × (1 / 0.75) × 1.5 = 2.4 #}
+        {% set g_per_mgl = 2.4 %}
+
+        {% set deficit = [fc_target - fc, 0] | max %}
+        {% set suggestion = (deficit * g_per_mgl * learning_factor) | round(1) %}
+
+        {# Force minimum 10g suggestion if ORP critically low or FC near zero #}
+        {% if orp < 550 or fc < 0.5 %}
+          {% set suggestion = [suggestion, 10] | max %}
+        {% endif %}
+
+        {{ suggestion }}
+      attributes:
+        target_free_chlorine: "3.0 mg/L"
+        product: "HTH Shock 75% calcium hypochlorite"
+        learning_factor: "{{ states('input_number.whirlpool_learning_factor_chlorine') }}"
+
+    # ── pH Minus Dosing Suggestion ──────────────────────────────────
+    # Product: BAYZID pH Minus liquid 14.9%
+    # Formula: 18ml lowers 1200L by 0.1 pH units
+    # Adjust ml_per_0_1_ph for your volume and product (see README)
+    - name: "Whirlpool pH Minus Suggestion"
+      unique_id: whirlpool_ph_minus_suggestion
+      unit_of_measurement: "ml"
+      icon: mdi:flask-minus
+      state: >
+        {% set ph = states('sensor.wpsensor_ph') | float(7.4) %}
+        {% set learning_factor = states('input_number.whirlpool_learning_factor_ph') | float(1.0) %}
+
+        {# Target pH: 7.3 (optimal for hot tubs, center of 7.0–7.6 range) #}
+        {% set ph_target = 7.3 %}
+
+        {# BAYZID 14.9% liquid: 18ml lowers 1200L by 0.1 pH #}
+        {# Formula: volume_liters × 0.015 = ml per 0.1 pH #}
+        {% set ml_per_0_1_ph = 18 %}
+
+        {% set difference = ph - ph_target %}
+        {% if difference > 0.05 %}
+          {% set suggestion = ((difference / 0.1) * ml_per_0_1_ph * learning_factor) | round(0) | int %}
+          {# Safety cap: max 150ml per single dose, then wait 30-45 min #}
+          {{ [suggestion, 150] | min }}
+        {% else %}
+          0
+        {% endif %}
+      attributes:
+        target_ph: 7.3
+        ml_per_0_1_ph: 18
+        max_single_dose: "150ml"
+        learning_factor: "{{ states('input_number.whirlpool_learning_factor_ph') }}"
+
+    # ── Overall Chemistry Status ────────────────────────────────────
+    - name: "Whirlpool Chemistry Status"
+      unique_id: whirlpool_chemistry_status
+      icon: mdi:traffic-light
+      state: >
+        {% set ph = states('sensor.wpsensor_ph') | float(0) %}
+        {% set orp = states('sensor.wpsensor_orp') | float(0) %}
+        {% if ph == 0 and orp == 0 %}
+          ⚪ No sensor data
+        {% elif ph > 7.9 or ph < 6.8 or orp < 500 %}
+          🔴 Critical – act immediately
+        {% elif ph > 7.6 or ph < 7.0 or orp < 620 %}
+          🟡 Correction recommended
+        {% else %}
+          🟢 All good
+        {% endif %}
+      attributes:
+        ph_target_range: "7.0 – 7.6"
+        orp_target_range: "650 – 750 mV"
+
+    # ── Wait Time Hint after pH Minus Dose ─────────────────────────
+    - name: "Whirlpool Wait Hint"
+      unique_id: whirlpool_wait_hint
+      state: >
+        {% set ml = states('input_number.whirlpool_ph_minus_dose') | float(0) %}
+        {% if ml > 100 %}
+          ⏳ Wait 45 min before next reading
+        {% elif ml > 50 %}
+          ⏳ Wait 30 min before next reading
+        {% elif ml > 0 %}
+          ⏳ Wait 15 min before next reading
+        {% else %}
+          ✅ Ready to measure
+        {% endif %}

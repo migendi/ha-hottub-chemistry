@@ -1,0 +1,236 @@
+# ==============================================================
+# HOT TUB CHEMISTRY MANAGER – automations.yaml
+# ==============================================================
+# Append these entries to your existing automations.yaml
+# ==============================================================
+
+# --------------------------------------------------------------
+# 1. Alert – pH too high
+# Suppressed for 60 min after a dose is confirmed
+# (calcium hypochlorite temporarily raises pH when added)
+# --------------------------------------------------------------
+- id: whirlpool_ph_too_high
+  alias: "Whirlpool: pH too high"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.wpsensor_ph
+      above: 7.6
+      for:
+        minutes: 10
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.wpsensor_ph
+      above: 7.6
+    - condition: template
+      value_template: >
+        {% set last_dose = states.input_boolean.whirlpool_dose_confirmed.last_changed %}
+        {{ (now() - last_dose).total_seconds() > 3600 }}
+  action:
+    - service: notify.notify
+      data:
+        title: "🟡 Hot Tub – pH too high"
+        message: >
+          pH: {{ states('sensor.wpsensor_ph') }}
+          → Add {{ states('sensor.whirlpool_ph_minus_suggestion') }} ml pH Minus
+          {{ states('sensor.whirlpool_wait_hint') }}
+  mode: single
+
+# --------------------------------------------------------------
+# 2. Alert – pH critical
+# Suppressed for 60 min after a dose is confirmed
+# --------------------------------------------------------------
+- id: whirlpool_ph_critical
+  alias: "Whirlpool: pH critical"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.wpsensor_ph
+      above: 7.9
+      for:
+        minutes: 5
+  condition:
+    - condition: template
+      value_template: >
+        {% set last_dose = states.input_boolean.whirlpool_dose_confirmed.last_changed %}
+        {{ (now() - last_dose).total_seconds() > 3600 }}
+  action:
+    - service: notify.notify
+      data:
+        title: "🔴 Hot Tub – pH CRITICAL"
+        message: >
+          pH {{ states('sensor.wpsensor_ph') }} – chlorine nearly ineffective!
+          Add {{ states('sensor.whirlpool_ph_minus_suggestion') }} ml pH Minus
+          Max single dose: 150ml, then wait 45 min!
+  mode: single
+
+# --------------------------------------------------------------
+# 3. Alert – ORP / Chlorine low
+# --------------------------------------------------------------
+- id: whirlpool_orp_low
+  alias: "Whirlpool: ORP too low"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.wpsensor_orp
+      below: 620
+      for:
+        minutes: 15
+  action:
+    - service: notify.notify
+      data:
+        title: "🟡 Hot Tub – Add chlorine"
+        message: >
+          ORP: {{ states('sensor.wpsensor_orp') }} mV (target: 650–750 mV)
+          → Add {{ states('sensor.whirlpool_chlorine_suggestion') }} g HTH Shock
+          Estimated FC: {{ states('sensor.whirlpool_free_chlorine_estimated') }} mg/L
+  mode: single
+
+# --------------------------------------------------------------
+# 4. Alert – ORP critical (shock chlorination needed)
+# --------------------------------------------------------------
+- id: whirlpool_orp_critical
+  alias: "Whirlpool: ORP critical – shock chlorination"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.wpsensor_orp
+      below: 500
+      for:
+        minutes: 10
+  action:
+    - service: notify.notify
+      data:
+        title: "🔴 Hot Tub – SHOCK CHLORINATION needed"
+        message: >
+          ORP: {{ states('sensor.wpsensor_orp') }} mV – critically low!
+          Add {{ states('sensor.whirlpool_chlorine_suggestion') }} g HTH Shock (min. 10g)
+          ⛔ Do not use hot tub until ORP > 650 mV!
+  mode: single
+
+# --------------------------------------------------------------
+# 5. Dose confirmed → save log + update learning factors
+# --------------------------------------------------------------
+- id: whirlpool_dose_confirmed
+  alias: "Whirlpool: Dose confirmed – log and learn"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.whirlpool_dose_confirmed
+      to: "on"
+  action:
+    - delay:
+        seconds: 1
+
+    # Save dose log as persistent notification
+    - service: persistent_notification.create
+      data:
+        title: "💧 Hot Tub Dose Log"
+        notification_id: "whirlpool_dose_{{ now().strftime('%Y%m%d_%H%M') }}"
+        message: >
+          📅 {{ now().strftime('%d.%m.%Y %H:%M') }}
+          ──────────────────────────
+          Readings before dose:
+            pH:   {{ states('sensor.wpsensor_ph') }}
+            ORP:  {{ states('sensor.wpsensor_orp') }} mV
+            FC:   {{ states('sensor.whirlpool_free_chlorine_estimated') }} mg/L (estimated)
+            TDS:  {{ states('sensor.wpsensor_tds') }}
+            Temp: {{ states('sensor.wpsensor_temperature') }} °C
+          ──────────────────────────
+          Added:
+            Chlorine: {{ states('input_number.whirlpool_chlorine_dose') }} g
+            pH Minus: {{ states('input_number.whirlpool_ph_minus_dose') }} ml
+          ──────────────────────────
+          Suggestion was:
+            Chlorine: {{ states('sensor.whirlpool_chlorine_suggestion') }} g
+            pH Minus: {{ states('sensor.whirlpool_ph_minus_suggestion') }} ml
+          ──────────────────────────
+          Learning factors:
+            Chlorine: {{ states('input_number.whirlpool_learning_factor_chlorine') }}
+            pH Minus: {{ states('input_number.whirlpool_learning_factor_ph') }}
+
+    # Update chlorine learning factor (exponential smoothing 70/30)
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {% set suggestion = states('sensor.whirlpool_chlorine_suggestion') | float(0) %}
+                {% set dose = states('input_number.whirlpool_chlorine_dose') | float(0) %}
+                {{ suggestion > 0.5 and dose > 0 }}
+          sequence:
+            - service: input_number.set_value
+              target:
+                entity_id: input_number.whirlpool_learning_factor_chlorine
+              data:
+                value: >
+                  {% set old = states('input_number.whirlpool_learning_factor_chlorine') | float(1.0) %}
+                  {% set suggestion = states('sensor.whirlpool_chlorine_suggestion') | float(1) %}
+                  {% set dose = states('input_number.whirlpool_chlorine_dose') | float(1) %}
+                  {% set new = old * 0.7 + (dose / suggestion) * 0.3 %}
+                  {{ [[new, 0.5] | max, 2.0] | min | round(3) }}
+
+    # Update pH minus learning factor
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {% set suggestion = states('sensor.whirlpool_ph_minus_suggestion') | float(0) %}
+                {% set dose = states('input_number.whirlpool_ph_minus_dose') | float(0) %}
+                {{ suggestion > 0.5 and dose > 0 }}
+          sequence:
+            - service: input_number.set_value
+              target:
+                entity_id: input_number.whirlpool_learning_factor_ph
+              data:
+                value: >
+                  {% set old = states('input_number.whirlpool_learning_factor_ph') | float(1.0) %}
+                  {% set suggestion = states('sensor.whirlpool_ph_minus_suggestion') | float(1) %}
+                  {% set dose = states('input_number.whirlpool_ph_minus_dose') | float(1) %}
+                  {% set new = old * 0.7 + (dose / suggestion) * 0.3 %}
+                  {{ [[new, 0.5] | max, 2.0] | min | round(3) }}
+
+    # Reset dose input fields
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.whirlpool_chlorine_dose
+      data:
+        value: 0
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.whirlpool_ph_minus_dose
+      data:
+        value: 0
+
+    # Turn off the confirm toggle
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.whirlpool_dose_confirmed
+
+  mode: single
+
+# --------------------------------------------------------------
+# 6. Daily morning report at 08:00
+# --------------------------------------------------------------
+- id: whirlpool_morning_report
+  alias: "Whirlpool: Daily morning report"
+  trigger:
+    - platform: time
+      at: "08:00:00"
+  action:
+    - service: notify.notify
+      data:
+        title: "🌊 Hot Tub Morning Report"
+        message: >
+          Status: {{ states('sensor.whirlpool_chemistry_status') }}
+          ──────────────────────────
+          pH:   {{ states('sensor.wpsensor_ph') }} (target: 7.0–7.6)
+          ORP:  {{ states('sensor.wpsensor_orp') }} mV (target: 650–750)
+          FC:   {{ states('sensor.whirlpool_free_chlorine_estimated') }} mg/L (target: 2–4)
+          Temp: {{ states('sensor.wpsensor_temperature') }} °C
+          TDS:  {{ states('sensor.wpsensor_tds') }}
+          ──────────────────────────
+          {% set chlorine = states('sensor.whirlpool_chlorine_suggestion') | float(0) %}
+          {% set ph = states('sensor.whirlpool_ph_minus_suggestion') | float(0) %}
+          {% if chlorine > 0 or ph > 0 %}
+          Recommended today:
+          {% if chlorine > 0 %}  → {{ chlorine }} g HTH Shock chlorine{% endif %}
+          {% if ph > 0 %}  → {{ ph | int }} ml pH Minus{% endif %}
+          {% else %}
+          ✅ No dose needed today
+          {% endif %}
+  mode: single

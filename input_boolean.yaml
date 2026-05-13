@@ -1,0 +1,15 @@
+# ==============================================================
+# HOT TUB CHEMISTRY MANAGER – input_boolean.yaml
+# ==============================================================
+
+# Toggle this ON to confirm a dose entry.
+# The automation will save the log entry, update learning factors,
+# and reset the dose input fields automatically.
+whirlpool_dose_confirmed:
+  name: "Confirm Dose Entry"
+  icon: mdi:check-circle
+
+# Toggle to enable or disable adaptive learning
+whirlpool_learning_enabled:
+  name: "Adaptive Learning Enabled"
+  icon: mdi:brain

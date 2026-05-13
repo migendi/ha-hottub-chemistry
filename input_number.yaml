@@ -1,0 +1,63 @@
+# ==============================================================
+# HOT TUB CHEMISTRY MANAGER – input_number.yaml
+# ==============================================================
+# Add these entries to your existing input_number configuration.
+# All entries use mode: box for direct number input (no sliders).
+# ==============================================================
+
+# --------------------------------------------------------------
+# Dose entry fields – what did you just add?
+# --------------------------------------------------------------
+
+whirlpool_chlorine_dose:
+  name: "Chlorine Dose (grams)"
+  min: 0
+  max: 200
+  step: 0.5
+  unit_of_measurement: "g"
+  mode: box
+  icon: mdi:flask-plus
+
+whirlpool_ph_minus_dose:
+  name: "pH Minus Dose (ml)"
+  min: 0
+  max: 500
+  step: 1
+  unit_of_measurement: "ml"
+  mode: box
+  icon: mdi:flask-minus
+
+# Optional: manual free chlorine reading from test strips
+whirlpool_free_chlorine_manual:
+  name: "Free Chlorine manual (mg/L)"
+  min: 0
+  max: 10
+  step: 0.1
+  unit_of_measurement: "mg/L"
+  mode: box
+  icon: mdi:water-check
+
+# --------------------------------------------------------------
+# Adaptive learning factors
+# Start at 1.0 = perfectly calibrated
+# Range: 0.5 – 2.0 (clamped automatically)
+# Reset to 1.0 after a full water change
+# --------------------------------------------------------------
+
+whirlpool_learning_factor_chlorine:
+  name: "Learning Factor Chlorine"
+  min: 0.5
+  max: 2.0
+  step: 0.001
+  mode: box
+  initial: 1.0
+  icon: mdi:tune
+
+whirlpool_learning_factor_ph:
+  name: "Learning Factor pH Minus"
+  min: 0.5
+  max: 2.0
+  step: 0.001
+  mode: box
+  initial: 1.0
+  icon: mdi:tune
