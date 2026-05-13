@@ -7,9 +7,19 @@ A complete Home Assistant dashboard and automation package for managing hot tub 
 
 ---
 
-## 📸 Screenshot
+## 📸 Screenshot Homeassistant
 
-> <img width="843" height="900" alt="image" src="https://github.com/user-attachments/assets/138c13c0-e16e-4739-9cf0-6ed308ac4520" />
+<img width="843" height="900" alt="image" src="https://github.com/user-attachments/assets/138c13c0-e16e-4739-9cf0-6ed308ac4520" />
+
+## 📸 Screenshot Smartlife/Tuya App
+
+<img width="419" height="918" alt="image" src="https://github.com/user-attachments/assets/ea99f78b-471d-4717-bbc7-da6cbaefa7fb" />
+
+## 📸 Foto The Gidigi Device
+
+<img width="470" height="531" alt="image" src="https://github.com/user-attachments/assets/e132d48d-3001-4c86-bec8-9a0218ab8a62" />
+
+
 
 
 ---
