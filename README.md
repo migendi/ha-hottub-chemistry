@@ -9,7 +9,8 @@ A complete Home Assistant dashboard and automation package for managing hot tub 
 
 ## 📸 Screenshot
 
-> *(Add your dashboard screenshot here)*
+> <img width="843" height="900" alt="image" src="https://github.com/user-attachments/assets/138c13c0-e16e-4739-9cf0-6ed308ac4520" />
+
 
 ---
 
