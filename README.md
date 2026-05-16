@@ -1,4 +1,5 @@
 🛁 Hot Tub Chemistry Manager for Home Assistant
+
 A complete Home Assistant dashboard and automation package for managing hot tub water chemistry — dosing suggestions, adaptive learning, history graphs, and notifications. Built for a 1200-liter hot tub using a cheap WiFi water quality sensor instead of expensive proprietary solutions like Ondilo ICO or Blue Connect.
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.4%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -25,25 +26,29 @@ A complete Home Assistant dashboard and automation package for managing hot tub 
 🔔 Notifications – pH and ORP alerts with smart suppression after chemical additions
 ✏️ Dose logging – every chemical addition is saved as a persistent notification with full context
 ---
+
 🛒 Hardware Used
-Item	Details
-Sensor	GIDIGI 8-in-1 WiFi Water Quality Monitor (pH, ORP, TDS, EC, salinity, temperature)
-Integration	Tuya / Smart Life → Home Assistant via Tuya integration
-Hot tub volume	1200 liters
-> 💡 Any WiFi water quality sensor that exposes pH and ORP to Home Assistant will work. Just adjust the entity IDs in the configuration files.
+- Item	  Details
+- Sensor	GIDIGI 8-in-1 WiFi Water Quality Monitor (pH, ORP, TDS, EC, salinity, temperature)
+- Integration	Tuya / Smart Life → Home Assistant via Tuya integration
+- Hot tub volume	1200 liters
+-> 💡 Any WiFi water quality sensor that exposes pH and ORP to Home Assistant will work. Just adjust the entity IDs in the configuration files.
+  
 ---
+
 🧪 Chemicals Used
-Chemical	Product	Active content
-Chlorine	HTH Shock (calcium hypochlorite)	75% active chlorine
-pH reducer	BAYZID® pH Minus liquid	14.9%
-> The dosing formulas are calibrated for these products and 1200L. See the \*\*Adaptation\*\* section below to adjust for your setup.
+- Chemical	Product	Active content
+- Chlorine	HTH Shock (calcium hypochlorite)	75% active chlorine
+- pH reducer	BAYZID® pH Minus liquid	14.9%
+-> The dosing formulas are calibrated for these products and 1200L. See the \*\*Adaptation\*\* section below to adjust for your setup.
+  
 ---
+
 📋 Requirements
-Home Assistant 2026.4 or newer
-A water quality sensor providing pH and ORP values to HA
-Extended or Local Tuya integration (or any other integration providing the sensor entities)
-with the Standard Tuya Integration you only get Ph and Temperature
-The following HA integrations enabled: `input\_number`, `input\_boolean`, `template`
+- Home Assistant 2026.4 or newer
+- A water quality sensor providing pH and ORP values to HA
+- Extended or Local Tuya integration (or any other integration providing the sensor entities) with the Standard Tuya Integration you only get Ph and Temperature from the Gidigi Device
+- The following HA integrations enabled: `input\_number`, `input\_boolean`, `template`
 ---
 📁 File Structure
 ```
