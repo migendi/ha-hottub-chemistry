@@ -47,7 +47,7 @@ A complete Home Assistant dashboard and automation package for managing hot tub 
 📋 Requirements
 - Home Assistant 2026.4 or newer
 - A water quality sensor providing pH and ORP values to HA
-- Extended or Local Tuya integration (or any other integration providing the sensor entities) with the Standard Tuya Integration you only get Ph and Temperature from the Gidigi Device
+- Extended or Local Tuya integration (or any other integration providing the sensor entities) with the Standard Tuya Integration you only get TDS and Temperature from the Gidigi Device
 - The following HA integrations enabled: `input\_number`, `input\_boolean`, `template`
 ---
 📁 File Structure
