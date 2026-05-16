@@ -1,7 +1,5 @@
 # 🛁 Hot Tub Chemistry Manager for Home Assistant
 
-one thing that i had forgotten before: you need the local tuya or the extended tuya integration in HA. That also comes with the need of a Tuya developer account. with the standard tuya integration you will only see temperature and pH. so please follow the documentation of these integrations to get all the sensors to HA.
-
 A complete Home Assistant dashboard and automation package for managing hot tub water chemistry — dosing suggestions, adaptive learning, history graphs, and notifications. Built for a **1200-liter hot tub** using a cheap WiFi water quality sensor instead of expensive proprietary solutions like Ondilo ICO or Blue Connect.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.4%2B-blue)
@@ -64,7 +62,7 @@ A complete Home Assistant dashboard and automation package for managing hot tub 
 
 - Home Assistant 2026.4 or newer
 - A water quality sensor providing **pH** and **ORP** values to HA
-- Tuya integration (or any other integration providing the sensor entities)
+- Extended or Local Tuya integration (or any other integration providing the sensor entities)
 - The following HA integrations enabled: `input_number`, `input_boolean`, `template`
 
 ---
